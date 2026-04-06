@@ -22,13 +22,13 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
-const appUsername = process.env.APP_USERNAME;
+const appUsername = process.env.APP_USER ?? process.env.APP_USERNAME;
 const appPassword = process.env.APP_PASSWORD;
 const isAppAuthEnabled = Boolean(appUsername && appPassword);
 
 if ((appUsername && !appPassword) || (!appUsername && appPassword)) {
   log(
-    "APP_USERNAME or APP_PASSWORD is missing. App auth has been disabled because both values are required.",
+    "APP_USER (or legacy APP_USERNAME) or APP_PASSWORD is missing. App auth has been disabled because both values are required.",
     "auth",
   );
 }
