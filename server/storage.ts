@@ -5,9 +5,10 @@ import {
   type InsertSequence,
   type UpdateSequenceRequest,
 } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export interface IStorage {
+  ensureSchema(): Promise<void>;
   getSequences(): Promise<Sequence[]>;
   getSequence(id: number): Promise<Sequence | undefined>;
   createSequence(sequence: InsertSequence): Promise<Sequence>;
@@ -21,6 +22,18 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Database is not initialized");
     }
     return db;
+  }
+
+  async ensureSchema(): Promise<void> {
+    await this.getDb().execute(sql`
+      CREATE TABLE IF NOT EXISTS sequences (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        steps JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
   }
 
   async getSequences(): Promise<Sequence[]> {
@@ -52,6 +65,10 @@ export class DatabaseStorage implements IStorage {
 }
 
 export class MemoryStorage implements IStorage {
+  async ensureSchema(): Promise<void> {
+    // no-op for in-memory storage
+  }
+
   private items: Sequence[] = [];
   private nextId = 1;
 
