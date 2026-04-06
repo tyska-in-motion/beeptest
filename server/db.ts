@@ -11,11 +11,13 @@ const connectionString =
   process.env.POSTGRES_PRISMA_URL ??
   process.env.POSTGRESQL_URL;
 
-if (!connectionString) {
-  throw new Error(
-    "Database connection string is missing. Set one of: DATABASE_URL, SUPABASE_DB_URL, POSTGRES_URL, POSTGRES_PRISMA_URL, or POSTGRESQL_URL.",
+export const hasDatabaseConnectionString = Boolean(connectionString);
+
+if (!hasDatabaseConnectionString) {
+  console.warn(
+    "[db] Database connection string is missing. Falling back to in-memory storage. Set one of: DATABASE_URL, SUPABASE_DB_URL, POSTGRES_URL, POSTGRES_PRISMA_URL, or POSTGRESQL_URL.",
   );
 }
 
-export const pool = new Pool({ connectionString });
-export const db = drizzle(pool, { schema });
+export const pool = connectionString ? new Pool({ connectionString }) : null;
+export const db = pool ? drizzle(pool, { schema }) : null;

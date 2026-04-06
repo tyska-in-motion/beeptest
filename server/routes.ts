@@ -71,6 +71,8 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  await storage.ensureSchema();
+
   // Seed Data
   await seedDatabase();
 
