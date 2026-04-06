@@ -22,6 +22,50 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+const appUsername = process.env.APP_USERNAME;
+const appPassword = process.env.APP_PASSWORD;
+const isAppAuthEnabled = Boolean(appUsername && appPassword);
+
+if ((appUsername && !appPassword) || (!appUsername && appPassword)) {
+  log(
+    "APP_USERNAME or APP_PASSWORD is missing. App auth has been disabled because both values are required.",
+    "auth",
+  );
+}
+
+app.use((req, res, next) => {
+  if (!isAppAuthEnabled) {
+    return next();
+  }
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Basic ")) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="Secure Area"');
+    return res.status(401).send("Authentication required");
+  }
+
+  const encodedCredentials = authHeader.slice("Basic ".length);
+  const decodedCredentials = Buffer.from(encodedCredentials, "base64").toString(
+    "utf8",
+  );
+  const separatorIndex = decodedCredentials.indexOf(":");
+
+  if (separatorIndex < 0) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="Secure Area"');
+    return res.status(401).send("Invalid authentication format");
+  }
+
+  const username = decodedCredentials.slice(0, separatorIndex);
+  const password = decodedCredentials.slice(separatorIndex + 1);
+
+  if (username !== appUsername || password !== appPassword) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="Secure Area"');
+    return res.status(401).send("Invalid credentials");
+  }
+
+  return next();
+});
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
