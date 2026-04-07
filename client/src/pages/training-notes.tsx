@@ -117,7 +117,7 @@ export default function TrainingNotesPage() {
                 rows={3}
                 value={resultComment}
                 onChange={(e) => setResultComment(e.target.value)}
-                placeholder="Np. zatrzymałem się na 7.4, brakowało już siły pod koniec."
+                placeholder="Np. 7.4"
                 className="w-full bg-background border border-border rounded-lg px-3 py-2"
               />
             </label>
