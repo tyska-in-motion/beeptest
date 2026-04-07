@@ -1,5 +1,5 @@
 
-import { pgTable, text, serial, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, jsonb, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -24,6 +24,8 @@ export const sequences = pgTable("sequences", {
 export const insertSequenceSchema = createInsertSchema(sequences).omit({ 
   id: true, 
   createdAt: true 
+}).extend({
+  steps: z.array(stepSchema),
 });
 
 export type Sequence = typeof sequences.$inferSelect;
@@ -32,3 +34,30 @@ export type InsertSequence = z.infer<typeof insertSequenceSchema>;
 // API Types
 export type CreateSequenceRequest = InsertSequence;
 export type UpdateSequenceRequest = Partial<InsertSequence>;
+
+export const trainingConditionEnum = z.enum(["SZTOS", "OK", "SŁABO"]);
+export type TrainingCondition = z.infer<typeof trainingConditionEnum>;
+
+export const trainingNotes = pgTable("training_notes", {
+  id: serial("id").primaryKey(),
+  sequenceId: integer("sequence_id")
+    .notNull()
+    .references(() => sequences.id, { onDelete: "cascade" }),
+  condition: text("condition").$type<TrainingCondition>().notNull(),
+  finishedStep: integer("finished_step").notNull(),
+  noteDate: timestamp("note_date").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTrainingNoteSchema = createInsertSchema(trainingNotes)
+  .omit({
+    id: true,
+    createdAt: true,
+  })
+  .extend({
+    condition: trainingConditionEnum,
+    finishedStep: z.number().int().min(1, "Krok końcowy musi być większy od 0"),
+  });
+
+export type TrainingNote = typeof trainingNotes.$inferSelect;
+export type InsertTrainingNote = z.infer<typeof insertTrainingNoteSchema>;

@@ -1,9 +1,12 @@
 import { db, hasDatabaseConnectionString } from "./db";
 import {
   sequences,
+  trainingNotes,
   type Sequence,
   type InsertSequence,
   type UpdateSequenceRequest,
+  type TrainingNote,
+  type InsertTrainingNote,
 } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 
@@ -14,6 +17,8 @@ export interface IStorage {
   createSequence(sequence: InsertSequence): Promise<Sequence>;
   updateSequence(id: number, updates: UpdateSequenceRequest): Promise<Sequence | undefined>;
   deleteSequence(id: number): Promise<void>;
+  getTrainingNotes(): Promise<TrainingNote[]>;
+  createTrainingNote(note: InsertTrainingNote): Promise<TrainingNote>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -31,6 +36,16 @@ export class DatabaseStorage implements IStorage {
         name TEXT NOT NULL,
         description TEXT,
         steps JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    await this.getDb().execute(sql`
+      CREATE TABLE IF NOT EXISTS training_notes (
+        id SERIAL PRIMARY KEY,
+        sequence_id INTEGER NOT NULL REFERENCES sequences(id) ON DELETE CASCADE,
+        condition TEXT NOT NULL,
+        finished_step INTEGER NOT NULL,
+        note_date TIMESTAMP NOT NULL DEFAULT NOW(),
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
@@ -62,6 +77,15 @@ export class DatabaseStorage implements IStorage {
   async deleteSequence(id: number): Promise<void> {
     await this.getDb().delete(sequences).where(eq(sequences.id, id));
   }
+
+  async getTrainingNotes(): Promise<TrainingNote[]> {
+    return await this.getDb().select().from(trainingNotes).orderBy(sql`${trainingNotes.noteDate} DESC`);
+  }
+
+  async createTrainingNote(note: InsertTrainingNote): Promise<TrainingNote> {
+    const [created] = await this.getDb().insert(trainingNotes).values(note).returning();
+    return created;
+  }
 }
 
 export class MemoryStorage implements IStorage {
@@ -70,7 +94,9 @@ export class MemoryStorage implements IStorage {
   }
 
   private items: Sequence[] = [];
+  private notes: TrainingNote[] = [];
   private nextId = 1;
+  private nextNoteId = 1;
 
   async getSequences(): Promise<Sequence[]> {
     return [...this.items].sort((a, b) => {
@@ -115,6 +141,29 @@ export class MemoryStorage implements IStorage {
 
   async deleteSequence(id: number): Promise<void> {
     this.items = this.items.filter((sequence) => sequence.id !== id);
+    this.notes = this.notes.filter((note) => note.sequenceId !== id);
+  }
+
+  async getTrainingNotes(): Promise<TrainingNote[]> {
+    return [...this.notes].sort((a, b) => {
+      const aTime = a.noteDate ? new Date(a.noteDate).getTime() : 0;
+      const bTime = b.noteDate ? new Date(b.noteDate).getTime() : 0;
+      return bTime - aTime;
+    });
+  }
+
+  async createTrainingNote(note: InsertTrainingNote): Promise<TrainingNote> {
+    const created: TrainingNote = {
+      id: this.nextNoteId++,
+      sequenceId: note.sequenceId,
+      condition: note.condition,
+      finishedStep: note.finishedStep,
+      noteDate: note.noteDate ? new Date(note.noteDate) : new Date(),
+      createdAt: new Date(),
+    };
+
+    this.notes.push(created);
+    return created;
   }
 }
 

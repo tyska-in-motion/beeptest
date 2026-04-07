@@ -1,7 +1,7 @@
 import { useSequences, useDeleteSequence } from "@/hooks/use-sequences";
 import { SequenceCard } from "@/components/sequence-card";
 import { Link } from "wouter";
-import { Plus, Dumbbell, Timer } from "lucide-react";
+import { Plus, Dumbbell, Timer, NotebookPen } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Dashboard() {
@@ -46,10 +46,16 @@ export default function Dashboard() {
             <Dumbbell className="w-6 h-6 text-primary" />
             Dostępne sekwencje
           </h2>
-          <Link href="/create" className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 active:translate-y-0">
-            <Plus className="w-5 h-5" />
-            Nowa Sekwencja
-          </Link>
+          <div className="hidden sm:flex items-center gap-3">
+            <Link href="/notes" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-secondary hover:bg-secondary/90 text-secondary-foreground font-bold transition-all">
+              <NotebookPen className="w-5 h-5" />
+              Notatki
+            </Link>
+            <Link href="/create" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 active:translate-y-0">
+              <Plus className="w-5 h-5" />
+              Nowa Sekwencja
+            </Link>
+          </div>
         </div>
 
         {sequences?.length === 0 ? (
@@ -93,6 +99,9 @@ export default function Dashboard() {
       {/* Mobile FAB */}
       <Link href="/create" className="fixed bottom-6 right-6 sm:hidden w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-xl shadow-primary/30 flex items-center justify-center z-50">
         <Plus className="w-7 h-7" />
+      </Link>
+      <Link href="/notes" className="fixed bottom-24 right-6 sm:hidden w-14 h-14 bg-secondary text-secondary-foreground rounded-full shadow-xl flex items-center justify-center z-50">
+        <NotebookPen className="w-6 h-6" />
       </Link>
     </div>
   );

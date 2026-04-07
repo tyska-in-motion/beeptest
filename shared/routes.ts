@@ -1,6 +1,6 @@
 
 import { z } from 'zod';
-import { insertSequenceSchema, sequences } from './schema';
+import { insertSequenceSchema, insertTrainingNoteSchema, sequences, trainingNotes } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -57,6 +57,24 @@ export const api = {
       responses: {
         204: z.void(),
         404: errorSchemas.notFound,
+      },
+    },
+  },
+  notes: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/notes',
+      responses: {
+        200: z.array(z.custom<typeof trainingNotes.$inferSelect>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/notes',
+      input: insertTrainingNoteSchema,
+      responses: {
+        201: z.custom<typeof trainingNotes.$inferSelect>(),
+        400: errorSchemas.validation,
       },
     },
   },
