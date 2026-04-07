@@ -53,3 +53,34 @@ export function useCreateTrainingNote() {
     },
   });
 }
+
+export function useDeleteTrainingNote() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(api.notes.delete.path.replace(":id", String(id)), {
+        method: api.notes.delete.method,
+      });
+
+      if (!res.ok) {
+        throw new Error("Nie udało się usunąć wpisu");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.notes.list.path] });
+      toast({
+        title: "Usunięto wpis",
+        description: "Wpis treningowy został usunięty z historii.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Błąd",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}

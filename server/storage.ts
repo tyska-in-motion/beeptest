@@ -19,6 +19,7 @@ export interface IStorage {
   deleteSequence(id: number): Promise<void>;
   getTrainingNotes(): Promise<TrainingNote[]>;
   createTrainingNote(note: InsertTrainingNote): Promise<TrainingNote>;
+  deleteTrainingNote(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -44,10 +45,14 @@ export class DatabaseStorage implements IStorage {
         id SERIAL PRIMARY KEY,
         sequence_id INTEGER NOT NULL REFERENCES sequences(id) ON DELETE CASCADE,
         condition TEXT NOT NULL,
-        finished_step INTEGER NOT NULL,
+        result_comment TEXT NOT NULL DEFAULT '',
         note_date TIMESTAMP NOT NULL DEFAULT NOW(),
         created_at TIMESTAMP DEFAULT NOW()
       )
+    `);
+    await this.getDb().execute(sql`
+      ALTER TABLE training_notes
+      ADD COLUMN IF NOT EXISTS result_comment TEXT NOT NULL DEFAULT ''
     `);
   }
 
@@ -85,6 +90,11 @@ export class DatabaseStorage implements IStorage {
   async createTrainingNote(note: InsertTrainingNote): Promise<TrainingNote> {
     const [created] = await this.getDb().insert(trainingNotes).values(note).returning();
     return created;
+  }
+
+  async deleteTrainingNote(id: number): Promise<boolean> {
+    const deleted = await this.getDb().delete(trainingNotes).where(eq(trainingNotes.id, id)).returning({ id: trainingNotes.id });
+    return deleted.length > 0;
   }
 }
 
@@ -157,13 +167,19 @@ export class MemoryStorage implements IStorage {
       id: this.nextNoteId++,
       sequenceId: note.sequenceId,
       condition: note.condition,
-      finishedStep: note.finishedStep,
+      resultComment: note.resultComment,
       noteDate: note.noteDate ? new Date(note.noteDate) : new Date(),
       createdAt: new Date(),
     };
 
     this.notes.push(created);
     return created;
+  }
+
+  async deleteTrainingNote(id: number): Promise<boolean> {
+    const before = this.notes.length;
+    this.notes = this.notes.filter((note) => note.id !== id);
+    return this.notes.length < before;
   }
 }
 
