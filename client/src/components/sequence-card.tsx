@@ -1,6 +1,7 @@
 import { Sequence } from "@shared/schema";
 import { Link } from "wouter";
-import { Clock, Play, Trash2, Edit } from "lucide-react";
+import { Clock, Play, Trash2, Edit, ChevronDown } from "lucide-react";
+import { useMemo, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,8 +21,19 @@ interface SequenceCardProps {
 }
 
 export function SequenceCard({ sequence, onDelete, isDeleting }: SequenceCardProps) {
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const totalDuration = sequence.steps.reduce((acc, step) => acc + step.duration, 0);
   const totalSteps = sequence.steps.length;
+  const durationGroups = useMemo(() => {
+    const grouped = new Map<number, number>();
+
+    sequence.steps.forEach((step) => {
+      const key = step.duration;
+      grouped.set(key, (grouped.get(key) || 0) + 1);
+    });
+
+    return Array.from(grouped.entries()).sort((a, b) => a[0] - b[0]);
+  }, [sequence.steps]);
 
   const formatDuration = (seconds: number) => {
     const roundedSeconds = Math.round(seconds);
@@ -60,6 +72,45 @@ export function SequenceCard({ sequence, onDelete, isDeleting }: SequenceCardPro
           <div className="flex items-center gap-1.5">
             <span className="text-foreground">{formatDuration(totalDuration)}</span> łącznie
           </div>
+        </div>
+
+        <div className="mb-4 rounded-xl border border-border/60 bg-background/30">
+          <button
+            type="button"
+            className="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm font-medium text-left hover:bg-secondary/40 rounded-xl transition-colors"
+            onClick={() => setIsSummaryOpen((prev) => !prev)}
+          >
+            <span>Podsumowanie kroków</span>
+            <ChevronDown className={`w-4 h-4 transition-transform ${isSummaryOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          {isSummaryOpen && (
+            <div className="px-3 pb-3 space-y-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Kroki po kolei</p>
+                <ol className="space-y-1.5 text-sm">
+                  {sequence.steps.map((step, index) => (
+                    <li key={step.id} className="flex items-center justify-between gap-3">
+                      <span className="text-foreground/90">{index + 1}. {step.label}</span>
+                      <span className="text-muted-foreground font-timer">{step.duration}s</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Ile kroków ma ten sam czas</p>
+                <ul className="space-y-1.5 text-sm">
+                  {durationGroups.map(([duration, count]) => (
+                    <li key={duration} className="flex items-center justify-between gap-3">
+                      <span className="text-foreground/90">{duration}s</span>
+                      <span className="text-muted-foreground">{count} kroków</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3 mt-4">
