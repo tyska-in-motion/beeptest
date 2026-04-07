@@ -71,6 +71,43 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  app.get(api.notes.list.path, async (_req, res) => {
+    const notes = await storage.getTrainingNotes();
+    res.json(notes);
+  });
+
+  app.post(api.notes.create.path, async (req, res) => {
+    try {
+      const input = api.notes.create.input.parse(req.body);
+      const sequence = await storage.getSequence(input.sequenceId);
+      if (!sequence) {
+        return res.status(400).json({
+          message: "Wybrany trening nie istnieje",
+          field: "sequenceId",
+        });
+      }
+
+      const maxSteps = sequence.steps.length;
+      if (input.finishedStep > maxSteps) {
+        return res.status(400).json({
+          message: `Ten trening ma maksymalnie ${maxSteps} kroków`,
+          field: "finishedStep",
+        });
+      }
+
+      const note = await storage.createTrainingNote(input);
+      res.status(201).json(note);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      }
+      throw err;
+    }
+  });
+
   await storage.ensureSchema();
 
   // Seed Data

@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Editor from "@/pages/editor";
 import Player from "@/pages/player";
+import TrainingNotesPage from "@/pages/training-notes";
 
 function Router() {
   return (
@@ -15,6 +16,7 @@ function Router() {
       <Route path="/create" component={Editor} />
       <Route path="/editor/:id" component={Editor} />
       <Route path="/player/:id" component={Player} />
+      <Route path="/notes" component={TrainingNotesPage} />
       <Route component={NotFound} />
     </Switch>
   );
