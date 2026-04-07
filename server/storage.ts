@@ -54,6 +54,59 @@ export class DatabaseStorage implements IStorage {
       ALTER TABLE training_notes
       ADD COLUMN IF NOT EXISTS result_comment TEXT NOT NULL DEFAULT ''
     `);
+    await this.getDb().execute(sql`
+      ALTER TABLE training_notes
+      ADD COLUMN IF NOT EXISTS condition TEXT
+    `);
+    await this.getDb().execute(sql`
+      UPDATE training_notes
+      SET condition = 'OK'
+      WHERE condition IS NULL
+    `);
+    await this.getDb().execute(sql`
+      ALTER TABLE training_notes
+      ALTER COLUMN condition SET DEFAULT 'OK'
+    `);
+    await this.getDb().execute(sql`
+      ALTER TABLE training_notes
+      ALTER COLUMN condition SET NOT NULL
+    `);
+    await this.getDb().execute(sql`
+      ALTER TABLE training_notes
+      ADD COLUMN IF NOT EXISTS note_date TIMESTAMP
+    `);
+    await this.getDb().execute(sql`
+      UPDATE training_notes
+      SET note_date = COALESCE(note_date, created_at, NOW())
+      WHERE note_date IS NULL
+    `);
+    await this.getDb().execute(sql`
+      ALTER TABLE training_notes
+      ALTER COLUMN note_date SET DEFAULT NOW()
+    `);
+    await this.getDb().execute(sql`
+      ALTER TABLE training_notes
+      ALTER COLUMN note_date SET NOT NULL
+    `);
+    await this.getDb().execute(sql`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'training_notes'
+            AND column_name = 'result'
+        ) THEN
+          EXECUTE '
+            UPDATE training_notes
+            SET result_comment = COALESCE(NULLIF(result_comment, ''''), result)
+            WHERE result_comment IS NULL OR result_comment = ''''
+          ';
+        END IF;
+      END
+      $$;
+    `);
   }
 
   async getSequences(): Promise<Sequence[]> {
