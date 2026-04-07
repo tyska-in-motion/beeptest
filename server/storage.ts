@@ -141,7 +141,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTrainingNote(note: InsertTrainingNote): Promise<TrainingNote> {
-    const [created] = await this.getDb().insert(trainingNotes).values(note).returning();
+    const [created] = await this.getDb()
+      .insert(trainingNotes)
+      .values({
+        ...note,
+        noteDate: note.noteDate ?? new Date(),
+      })
+      .returning();
     return created;
   }
 
