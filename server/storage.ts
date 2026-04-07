@@ -89,6 +89,23 @@ export class DatabaseStorage implements IStorage {
       ALTER COLUMN note_date SET NOT NULL
     `);
     await this.getDb().execute(sql`
+      ALTER TABLE training_notes
+      ADD COLUMN IF NOT EXISTS finished_step INTEGER
+    `);
+    await this.getDb().execute(sql`
+      UPDATE training_notes
+      SET finished_step = 0
+      WHERE finished_step IS NULL
+    `);
+    await this.getDb().execute(sql`
+      ALTER TABLE training_notes
+      ALTER COLUMN finished_step SET DEFAULT 0
+    `);
+    await this.getDb().execute(sql`
+      ALTER TABLE training_notes
+      ALTER COLUMN finished_step SET NOT NULL
+    `);
+    await this.getDb().execute(sql`
       DO $$
       BEGIN
         IF EXISTS (
@@ -141,7 +158,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTrainingNote(note: InsertTrainingNote): Promise<TrainingNote> {
-    const [created] = await this.getDb().insert(trainingNotes).values(note).returning();
+    const [created] = await this.getDb()
+      .insert(trainingNotes)
+      .values({
+        ...note,
+        noteDate: note.noteDate ?? new Date(),
+      })
+      .returning();
     return created;
   }
 

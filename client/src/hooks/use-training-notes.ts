@@ -28,11 +28,19 @@ export function useCreateTrainingNote() {
       });
 
       if (!res.ok) {
+        const payload = await res.json().catch(() => null);
         if (res.status === 400) {
-          const error = api.notes.create.responses[400].parse(await res.json());
-          throw new Error(error.message);
+          const error = api.notes.create.responses[400].safeParse(payload);
+          if (error.success) {
+            throw new Error(error.data.message);
+          }
         }
-        throw new Error("Failed to save note");
+
+        if (payload && typeof payload === "object" && "message" in payload && typeof payload.message === "string") {
+          throw new Error(payload.message);
+        }
+
+        throw new Error("Nie udało się zapisać notatki");
       }
 
       return api.notes.create.responses[201].parse(await res.json());
