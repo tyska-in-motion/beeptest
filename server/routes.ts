@@ -126,12 +126,6 @@ async function seedDatabase() {
       description: "Pełny oficjalny test wahadłowy 20m (Multistage Fitness Test). Wszystkie 21 poziomów.",
       steps: beepTestSteps,
     });
-  } else {
-    // Force update the labels to the new "jeden jeden" format
-    console.log("Updating existing Beep Test labels...");
-    await storage.updateSequence(existingBeepTest.id, {
-      steps: beepTestSteps
-    });
   }
 
   if (sequences.length === 0) {
