@@ -44,7 +44,7 @@ export const trainingNotes = pgTable("training_notes", {
     .notNull()
     .references(() => sequences.id, { onDelete: "cascade" }),
   condition: text("condition").$type<TrainingCondition>().notNull(),
-  finishedStep: integer("finished_step").notNull(),
+  resultComment: text("result_comment").notNull(),
   noteDate: timestamp("note_date").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -56,7 +56,7 @@ export const insertTrainingNoteSchema = createInsertSchema(trainingNotes)
   })
   .extend({
     condition: trainingConditionEnum,
-    finishedStep: z.number().int().min(1, "Krok końcowy musi być większy od 0"),
+    resultComment: z.string().min(1, "Wynik jest wymagany"),
   });
 
 export type TrainingNote = typeof trainingNotes.$inferSelect;

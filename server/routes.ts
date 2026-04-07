@@ -87,14 +87,6 @@ export async function registerRoutes(
         });
       }
 
-      const maxSteps = sequence.steps.length;
-      if (input.finishedStep > maxSteps) {
-        return res.status(400).json({
-          message: `Ten trening ma maksymalnie ${maxSteps} kroków`,
-          field: "finishedStep",
-        });
-      }
-
       const note = await storage.createTrainingNote(input);
       res.status(201).json(note);
     } catch (err) {
@@ -106,6 +98,15 @@ export async function registerRoutes(
       }
       throw err;
     }
+  });
+
+  app.delete(api.notes.delete.path, async (req, res) => {
+    const id = Number(req.params.id);
+    const deleted = await storage.deleteTrainingNote(id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Notatka nie istnieje" });
+    }
+    res.status(204).send();
   });
 
   await storage.ensureSchema();

@@ -1,8 +1,8 @@
 import { type FormEvent, useMemo, useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, CalendarDays, NotebookPen } from "lucide-react";
+import { ArrowLeft, CalendarDays, NotebookPen, Trash2 } from "lucide-react";
 import { useSequences } from "@/hooks/use-sequences";
-import { useCreateTrainingNote, useTrainingNotes } from "@/hooks/use-training-notes";
+import { useCreateTrainingNote, useDeleteTrainingNote, useTrainingNotes } from "@/hooks/use-training-notes";
 import type { TrainingCondition } from "@shared/schema";
 
 const CONDITIONS: TrainingCondition[] = ["SZTOS", "OK", "SŁABO"];
@@ -17,10 +17,11 @@ export default function TrainingNotesPage() {
   const { data: sequences } = useSequences();
   const { data: notes, isLoading } = useTrainingNotes();
   const { mutate: createNote, isPending } = useCreateTrainingNote();
+  const { mutate: deleteNote, isPending: isDeleting } = useDeleteTrainingNote();
 
   const [sequenceId, setSequenceId] = useState<number | "">("");
   const [condition, setCondition] = useState<TrainingCondition>("OK");
-  const [finishedStep, setFinishedStep] = useState<number>(1);
+  const [resultComment, setResultComment] = useState("");
 
   const selectedSequence = sequences?.find((sequence) => sequence.id === sequenceId);
 
@@ -54,8 +55,9 @@ export default function TrainingNotesPage() {
     createNote({
       sequenceId,
       condition,
-      finishedStep,
+      resultComment: resultComment.trim(),
     });
+    setResultComment("");
   };
 
   return (
@@ -85,7 +87,6 @@ export default function TrainingNotesPage() {
                 onChange={(e) => {
                   const value = Number(e.target.value);
                   setSequenceId(value);
-                  setFinishedStep(1);
                 }}
                 className="w-full bg-background border border-border rounded-lg px-3 py-2"
               >
@@ -110,13 +111,13 @@ export default function TrainingNotesPage() {
             </label>
 
             <label className="space-y-2 text-sm">
-              <span className="text-muted-foreground">Wynik (krok końcowy)</span>
-              <input
-                type="number"
-                min={1}
-                max={selectedSequence?.steps.length ?? undefined}
-                value={finishedStep}
-                onChange={(e) => setFinishedStep(Number(e.target.value))}
+              <span className="text-muted-foreground">Wynik (komentarz końcowy)</span>
+              <textarea
+                required
+                rows={3}
+                value={resultComment}
+                onChange={(e) => setResultComment(e.target.value)}
+                placeholder="Np. zatrzymałem się na 7.4, brakowało już siły pod koniec."
                 className="w-full bg-background border border-border rounded-lg px-3 py-2"
               />
             </label>
@@ -130,7 +131,7 @@ export default function TrainingNotesPage() {
 
           <button
             type="submit"
-            disabled={!sequenceId || isPending}
+            disabled={!sequenceId || !resultComment.trim() || isPending}
             className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold disabled:opacity-60"
           >
             {isPending ? "Zapisywanie..." : "Zapisz notatkę"}
@@ -169,12 +170,24 @@ export default function TrainingNotesPage() {
                         <div>
                           <p className="font-medium">{note.sequenceName}</p>
                           <p className="text-sm text-muted-foreground">
-                            Wynik: krok {note.finishedStep}
+                            Wynik: {note.resultComment}
                           </p>
                         </div>
-                        <span className={`inline-flex items-center border px-2.5 py-1 rounded-full text-xs font-bold w-fit ${conditionStyles[note.condition]}`}>
-                          {note.condition}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center border px-2.5 py-1 rounded-full text-xs font-bold w-fit ${conditionStyles[note.condition]}`}>
+                            {note.condition}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => deleteNote(note.id)}
+                            disabled={isDeleting}
+                            className="inline-flex items-center justify-center rounded-lg border border-border p-2 text-muted-foreground hover:text-foreground hover:border-rose-400/50 disabled:opacity-60"
+                            aria-label="Usuń wpis treningowy"
+                            title="Usuń wpis"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
